@@ -88,4 +88,6 @@ export { actionToggleLinearEditor } from "./actionLinearEditor";
 
 export { actionToggleSearchMenu } from "./actionToggleSearchMenu";
 
+export { actionTogglePresentationMode } from "./actionTogglePresentationMode";
+
 export { actionToggleCropEditor } from "./actionCropEditor";

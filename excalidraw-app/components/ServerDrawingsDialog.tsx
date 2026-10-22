@@ -27,7 +27,11 @@ export const ServerDrawingsDialog = ({
         <p aria-live="polite" className={styles.status}>
           <strong>{controller.activeDrawing?.name ?? "Unsaved drawing"}</strong>
           <span>
-            {controller.isDirty ? "Unsaved changes" : "Saved to server"}
+            {!controller.activeDrawing
+              ? "Not saved to server"
+              : controller.isDirty
+              ? "Unsaved changes"
+              : "Saved to server"}
           </span>
         </p>
         {controller.disabled && (
@@ -36,25 +40,11 @@ export const ServerDrawingsDialog = ({
             the collaboration session to use them.
           </p>
         )}
-        <div className={styles.actions}>
-          <button
-            type="button"
-            disabled={
-              disabled || (!controller.activeDrawing && !controller.name.trim())
-            }
-            onClick={() => void controller.save(false)}
-          >
-            Save
-          </button>
-          {controller.activeDrawing && (
-            <span>Update “{controller.activeDrawing.name}”</span>
-          )}
-        </div>
         <form
           className={styles.saveAs}
           onSubmit={(event) => {
             event.preventDefault();
-            void controller.save(true);
+            void controller.save(false);
           }}
         >
           <label htmlFor="server-drawing-name">Drawing name</label>
@@ -71,11 +61,22 @@ export const ServerDrawingsDialog = ({
               type="submit"
               disabled={disabled || !controller.name.trim()}
             >
-              Save as
+              Save
             </button>
+            {controller.activeDrawing && (
+              <button
+                type="button"
+                disabled={disabled || !controller.name.trim()}
+                onClick={() => void controller.save(true)}
+              >
+                Save as copy
+              </button>
+            )}
           </div>
           <span>
-            Save as creates a separate drawing. Files are stored on this server.
+            {controller.activeDrawing
+              ? "Save updates the active drawing and its name. Save as copy creates a separate drawing."
+              : "Enter a name to save this drawing on the server."}
           </span>
         </form>
         {controller.operation && (
@@ -116,7 +117,7 @@ export const ServerDrawingsDialog = ({
             !controller.listError &&
             controller.drawings.length === 0 && (
               <p>
-                No saved drawings yet. Enter a name and choose Save as to create
+                No saved drawings yet. Enter a name and choose Save to create
                 one.
               </p>
             )}
@@ -162,7 +163,11 @@ export const ServerDrawingsDialog = ({
           </ul>
         </section>
         <div className={styles.actions}>
-          <button type="button" onClick={controller.close}>
+          <button
+            type="button"
+            disabled={controller.operation !== null}
+            onClick={controller.close}
+          >
             Close
           </button>
         </div>

@@ -81,7 +81,9 @@ const renderPreview = async (job: PreviewJob) => {
     }
   } finally {
     if (!job.abort.signal.aborted) {
-      previews.set(job.key, preview);
+      if (preview !== null) {
+        previews.set(job.key, preview);
+      }
       if (previews.size > MAX_PREVIEWS) {
         const oldest = previews.keys().next().value;
         if (oldest !== undefined) {
@@ -150,7 +152,7 @@ export const ServerDrawingPreview = ({
     readonly key: string;
     readonly source: string | null;
   } | null>(null);
-  const key = `${drawing.id}:${drawing.updatedAt}`;
+  const key = `${drawing.id}:${drawing.revision}`;
 
   useEffect(() => {
     const node = container.current;

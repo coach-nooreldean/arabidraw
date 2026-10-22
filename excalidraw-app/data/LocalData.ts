@@ -86,6 +86,23 @@ const saveDataStateToLocalStorage = (
       _appState.openSidebar = null;
     }
 
+    // A tab must restore its own canvas, even after another tab saves a different drawing.
+    try {
+      sessionStorage.setItem(
+        STORAGE_KEYS.SESSION_STORAGE_DRAFT,
+        JSON.stringify({
+          elements: getNonDeletedElements(elements),
+          appState: _appState,
+        }),
+      );
+    } catch (error) {
+      console.error("Saving this tab's draft failed", error);
+      // Never restore a stale tab snapshot after a failed write.
+      try {
+        sessionStorage.removeItem(STORAGE_KEYS.SESSION_STORAGE_DRAFT);
+      } catch {}
+    }
+
     localStorage.setItem(
       STORAGE_KEYS.LOCAL_STORAGE_ELEMENTS,
       JSON.stringify(getNonDeletedElements(elements)),

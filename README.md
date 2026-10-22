@@ -1,176 +1,64 @@
-<a href="https://excalidraw.com/" target="_blank" rel="noopener">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" alt="Excalidraw" srcset="https://excalidraw.nyc3.cdn.digitaloceanspaces.com/github/excalidraw_github_cover_2_dark.png" />
-    <img alt="Excalidraw" src="https://excalidraw.nyc3.cdn.digitaloceanspaces.com/github/excalidraw_github_cover_2.png" />
-  </picture>
-</a>
+# Arabidraw
 
-<h4 align="center">
-  <a href="https://excalidraw.com">Excalidraw Editor</a> |
-  <a href="https://plus.excalidraw.com/blog">Blog</a> |
-  <a href="https://docs.excalidraw.com">Documentation</a> |
-  <a href="https://plus.excalidraw.com">Excalidraw+</a>
-</h4>
+A self-hosted [Excalidraw](https://github.com/excalidraw/excalidraw) fork with Qomra Arabic fonts, presentation mode, and a server-backed drawing gallery.
 
-<div align="center">
-  <h2>
-    An open source virtual hand-drawn style whiteboard. </br>
-    Collaborative and end-to-end encrypted. </br>
-  <br />
-  </h2>
-</div>
-
-<br />
-<p align="center">
-  <a href="https://github.com/excalidraw/excalidraw/blob/master/LICENSE">
-    <img alt="Excalidraw is released under the MIT license." src="https://img.shields.io/badge/license-MIT-blue.svg"  /></a>
-  <a href="https://www.npmjs.com/package/@excalidraw/excalidraw">
-    <img alt="npm downloads/month" src="https://img.shields.io/npm/dm/@excalidraw/excalidraw"  /></a>
-  <a href="https://docs.excalidraw.com/docs/introduction/contributing">
-    <img alt="PRs welcome!" src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat"  /></a>
-  <a href="https://discord.gg/UexuTaE">
-    <img alt="Chat on Discord" src="https://img.shields.io/discord/723672430744174682?color=738ad6&label=Chat%20on%20Discord&logo=discord&logoColor=ffffff&widge=false"/></a>
-  <a href="https://deepwiki.com/excalidraw/excalidraw">
-    <img alt="Ask DeepWiki" src="https://deepwiki.com/badge.svg" /></a>
-  <a href="https://twitter.com/excalidraw">
-    <img alt="Follow Excalidraw on Twitter" src="https://img.shields.io/twitter/follow/excalidraw.svg?label=follow+@excalidraw&style=social&logo=twitter"/></a>
-</p>
-
-<div align="center">
-  <figure>
-    <a href="https://excalidraw.com" target="_blank" rel="noopener">
-      <img src="https://excalidraw.nyc3.cdn.digitaloceanspaces.com/github%2Fproduct_showcase.png" alt="Product showcase" />
-    </a>
-    <figcaption>
-      <p align="center">
-        Create beautiful hand-drawn like diagrams, wireframes, or whatever you like.
-      </p>
-    </figcaption>
-  </figure>
-</div>
-
-## Features
-
-The Excalidraw editor (npm package) supports:
-
-- 💯&nbsp;Free & open-source.
-- 🎨&nbsp;Infinite, canvas-based whiteboard.
-- ✍️&nbsp;Hand-drawn like style.
-- 🌓&nbsp;Dark mode.
-- 🏗️&nbsp;Customizable.
-- 📷&nbsp;Image support.
-- 😀&nbsp;Shape libraries support.
-- 🌐&nbsp;Localization (i18n) support.
-- 🖼️&nbsp;Export to PNG, SVG & clipboard.
-- 💾&nbsp;Open format - export drawings as an `.excalidraw` json file.
-- ⚒️&nbsp;Wide range of tools - rectangle, circle, diamond, arrow, line, free-draw, eraser...
-- ➡️&nbsp;Arrow-binding & labeled arrows.
-- 🔙&nbsp;Undo / Redo.
-- 🔍&nbsp;Zoom and panning support.
-
-## Excalidraw.com
-
-The app hosted at [excalidraw.com](https://excalidraw.com) is a minimal showcase of what you can build with Excalidraw. Its [source code](https://github.com/excalidraw/excalidraw/tree/master/excalidraw-app) is part of this repository as well, and the app features:
-
-- 📡&nbsp;PWA support (works offline).
-- 🤼&nbsp;Real-time collaboration.
-- 🔒&nbsp;End-to-end encryption.
-- 💾&nbsp;Local-first support (autosaves to the browser).
-- 🔗&nbsp;Shareable links (export to a readonly link you can share with others).
-
-We'll be adding these features as drop-in plugins for the npm package in the future.
-
-## Self-hosted saved drawings
-
-Text blocks use 30% more line spacing than upstream. Existing text using the
-upstream or earlier 50% default is adjusted when loaded; custom line heights
-are preserved. Save the drawing to persist the new spacing.
-
-Start or update this fork with Docker Compose:
+## Run with Docker
 
 ```sh
 docker compose up -d --build
 ```
 
-Open `http://localhost:3000`, then choose **Save** in the top toolbar (replacing
-Excalidraw+), or **Server drawings — Save / Browse** from the main menu.
-Enter a drawing name and choose **Save as** to create a saved drawing.
-Inside the dialog, **Save** updates the active drawing; **Save as** creates a
-separate copy. The gallery marks the current drawing **Active**. **Load** opens
-a drawing and asks before discarding unsaved changes. Embedded images and
-canvas backgrounds are included.
+Open `http://localhost:3000`. Drawings are standard `.excalidraw` files in `./drawings`, mounted at `/data/drawings` in the API container. **Back up this folder and retain it when rebuilding or updating.** The frontend proxies `/api` to the API; the API has no separately published port.
 
-Each card has a **Delete** action with confirmation. Deletion is permanent;
-deleting the active saved copy keeps its canvas open as an unsaved drawing.
-Previews load only for visible cards, with at most two fetch/render jobs at a
-time. The browser caches up to 64 small (240px maximum dimension) previews,
-not full scenes. The first preview still downloads the saved scene, so large
-image-heavy drawings can take longer; drawing/editing does not generate previews.
+There is no authentication. Use a trusted private network or put an authenticated reverse proxy in front of the deployment. Server files are not encrypted at rest.
 
-Drawings are standard `.excalidraw` files stored in `./drawings` on the host,
-mounted at `/data/drawings` in the API container. Back up this folder; it
-survives container restarts, rebuilds, and replacement. Do not delete it when
-updating the app. The API is available through the frontend's `/api` route,
-not a separate published port.
+## Saving and loading
 
-Server saving is explicit, separate from the existing browser autosave.
-The browser remembers the active server drawing across reloads, so **Save**
-updates that same file; **Save as** creates a new copy. For drawings opened
-before this update, load the intended saved copy once to establish its identity.
-After a reload, canvas changes are conservatively considered unsaved until Save.
-Save/load/delete is disabled during live collaboration. Names are limited to 200
-characters and requests to 50 MB, including embedded images. There is no
-authentication: keep this deployment on a trusted private network.
+- **Save** or **Ctrl/Cmd+S** saves the current drawing. The first save asks for a name.
+- **Drawings** opens the gallery. Edit the name and press **Save** to rename/update the active drawing. **Save as copy** creates a separate file.
+- **Load** asks before discarding local changes. Images and backgrounds are included.
+- **Delete** requires confirmation. Deleting the active saved copy keeps its canvas open, ready to save as a new drawing.
+- Clearing the canvas or importing a file detaches the previous server drawing, preventing the next save from accidentally overwriting it.
+- Browser autosave remains separate from explicit server saving. The browser restores the canvas and its server identity together, including unsaved edits. After upgrading from the original gallery implementation, load a saved drawing once to establish its identity in the new format.
+- If another tab or user changes a saved drawing, an outdated save or delete is rejected. Load the latest version or save your edits as a separate copy.
+- Save/load/delete is disabled during live collaboration. Requests are limited to 50 MB including embedded images; names are limited to 200 characters.
 
-For local development, run `yarn dev:server` and `yarn start` in separate
-terminals. The API defaults to port 3001 and `./drawings`; override `PORT`
-and `DRAWINGS_DIR` if needed. Set `DRAWINGS_API_URL` for the frontend when
-using another API address, for example:
+Gallery previews are loaded on demand, with two concurrent jobs and a cache of 64 thumbnails of up to 240px. Each first preview downloads the saved scene.
+
+## Fork features
+
+Qomra Arabic is available in Light, Regular, Medium, Bold, and Black. Default line spacing is 30% greater than upstream. Loading migrates upstream and the earlier 50% defaults; custom spacing is preserved.
+
+**Alt+P** enters presentation mode on desktop and activates the laser pointer. **Escape** exits. The default dark canvas background is `#0a0a0a`.
+
+Excalidraw+ promotions, sign-in/export integration, paid sidebar tabs, hosted AI, upstream analytics/error reporting, CDN font loading, social links, external help links, and publishing to the upstream library service have been removed. Local library import/export, public library browsing, image/file export, shortcut help, and normal sharing/collaboration remain.
+
+**Sharing dependencies:** normal share links and live collaboration still use the existing configured Excalidraw backends. The Docker services here provide the editor and private drawing storage, not a collaboration server. To host sharing infrastructure yourself, configure `VITE_APP_BACKEND_V2_GET_URL`, `VITE_APP_BACKEND_V2_POST_URL`, `VITE_APP_WS_SERVER_URL`, and `VITE_APP_FIREBASE_CONFIG` before building. Explicit server saves use only this instance's `/api/drawings` endpoint.
+
+## Development
+
+Use Node 20+ and Yarn 1.22.22. Install dependencies with `yarn install`, then run these in separate terminals:
 
 ```sh
-PORT=3101 yarn dev:server
-DRAWINGS_API_URL=http://127.0.0.1:3101 yarn start
+yarn dev:server
+DRAWINGS_API_URL=http://127.0.0.1:3001 yarn start
 ```
 
-## Quick start
+The API defaults to port 3001 and `./drawings`. Override `PORT`, `HOST`, and `DRAWINGS_DIR` as needed. The frontend port is configured with `VITE_APP_PORT`.
 
-**Note:** following instructions are for installing the Excalidraw [npm package](https://www.npmjs.com/package/@excalidraw/excalidraw) when integrating Excalidraw into your own app. To run the repository locally for development, please refer to our [Development Guide](https://docs.excalidraw.com/docs/introduction/development).
+## Verification
 
-Use `npm` or `yarn` to install the package.
-
-```bash
-npm install react react-dom @excalidraw/excalidraw
-# or
-yarn add react react-dom @excalidraw/excalidraw
+```sh
+yarn test:typecheck
+yarn build:server
+yarn playwright install chromium
+yarn test:drawings
 ```
 
-Check out our [documentation](https://docs.excalidraw.com/docs/@excalidraw/excalidraw/installation) for more details!
+`test:drawings` launches its own API and frontend on free localhost ports, creates a fresh browser profile, and stores **all test drawings in a new OS temporary directory**. It never reads or modifies `./drawings` or an existing server. Screenshots and failure artifacts stay in the printed temporary path. To use an installed Chromium browser, set `BROWSER_EXECUTABLE_PATH`.
 
-## Contributing
+The suite covers creating, updating, renaming, copying, reloading, unsaved edits, load/delete cancellation, imported scenes, Arabic text and images, backgrounds, network failures, concurrent writers, delayed saves, mobile layout, API validation, and persistence across API restarts.
 
-- Missing something or found a bug? [Report here](https://github.com/excalidraw/excalidraw/issues).
-- Want to contribute? Check out our [contribution guide](https://docs.excalidraw.com/docs/introduction/contributing) or let us know on [Discord](https://discord.gg/UexuTaE).
-- Want to help with translations? See the [translation guide](https://docs.excalidraw.com/docs/introduction/contributing#translating).
+## License
 
-## Integrations
-
-- [VScode extension](https://marketplace.visualstudio.com/items?itemName=pomdtr.excalidraw-editor)
-- [npm package](https://www.npmjs.com/package/@excalidraw/excalidraw)
-
-## Who's integrating Excalidraw
-
-[Google Cloud](https://googlecloudcheatsheet.withgoogle.com/architecture) • [Meta](https://meta.com/) • [CodeSandbox](https://codesandbox.io/) • [Obsidian Excalidraw](https://github.com/zsviczian/obsidian-excalidraw-plugin) • [Replit](https://replit.com/) • [Slite](https://slite.com/) • [Notion](https://notion.so/) • [HackerRank](https://www.hackerrank.com/) • and many others
-
-## Sponsors & support
-
-If you like the project, you can become a sponsor at [Open Collective](https://opencollective.com/excalidraw) or use [Excalidraw+](https://plus.excalidraw.com/).
-
-## Thank you for supporting Excalidraw
-
-[<img src="https://opencollective.com/excalidraw/tiers/sponsors/0/avatar.svg?avatarHeight=120"/>](https://opencollective.com/excalidraw/tiers/sponsors/0/website) [<img src="https://opencollective.com/excalidraw/tiers/sponsors/1/avatar.svg?avatarHeight=120"/>](https://opencollective.com/excalidraw/tiers/sponsors/1/website) [<img src="https://opencollective.com/excalidraw/tiers/sponsors/2/avatar.svg?avatarHeight=120"/>](https://opencollective.com/excalidraw/tiers/sponsors/2/website) [<img src="https://opencollective.com/excalidraw/tiers/sponsors/3/avatar.svg?avatarHeight=120"/>](https://opencollective.com/excalidraw/tiers/sponsors/3/website) [<img src="https://opencollective.com/excalidraw/tiers/sponsors/4/avatar.svg?avatarHeight=120"/>](https://opencollective.com/excalidraw/tiers/sponsors/4/website) [<img src="https://opencollective.com/excalidraw/tiers/sponsors/5/avatar.svg?avatarHeight=120"/>](https://opencollective.com/excalidraw/tiers/sponsors/5/website) [<img src="https://opencollective.com/excalidraw/tiers/sponsors/6/avatar.svg?avatarHeight=120"/>](https://opencollective.com/excalidraw/tiers/sponsors/6/website) [<img src="https://opencollective.com/excalidraw/tiers/sponsors/7/avatar.svg?avatarHeight=120"/>](https://opencollective.com/excalidraw/tiers/sponsors/7/website) [<img src="https://opencollective.com/excalidraw/tiers/sponsors/8/avatar.svg?avatarHeight=120"/>](https://opencollective.com/excalidraw/tiers/sponsors/8/website) [<img src="https://opencollective.com/excalidraw/tiers/sponsors/9/avatar.svg?avatarHeight=120"/>](https://opencollective.com/excalidraw/tiers/sponsors/9/website) [<img src="https://opencollective.com/excalidraw/tiers/sponsors/10/avatar.svg?avatarHeight=120"/>](https://opencollective.com/excalidraw/tiers/sponsors/10/website)
-
-<a href="https://opencollective.com/excalidraw#category-CONTRIBUTE" target="_blank"><img src="https://opencollective.com/excalidraw/tiers/backers.svg?avatarHeight=32"/></a>
-
-Last but not least, we're thankful to these companies for offering their services for free:
-
-[![Vercel](./.github/assets/vercel.svg)](https://vercel.com) [![Sentry](./.github/assets/sentry.svg)](https://sentry.io) [![Crowdin](./.github/assets/crowdin.svg)](https://crowdin.com)
+The upstream Excalidraw code is MIT licensed; see [LICENSE](LICENSE).

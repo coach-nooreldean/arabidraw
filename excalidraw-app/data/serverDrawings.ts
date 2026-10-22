@@ -2,6 +2,7 @@ export interface DrawingMetadata {
   readonly id: string;
   readonly name: string;
   readonly updatedAt: string;
+  readonly revision: string;
 }
 
 export interface ServerDrawing extends DrawingMetadata {
@@ -9,37 +10,54 @@ export interface ServerDrawing extends DrawingMetadata {
 }
 
 const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
-  let response: Response;
+  const abort = new AbortController();
+  const onAbort = () => abort.abort();
+  if (init?.signal?.aborted) {
+    abort.abort();
+  }
+  init?.signal?.addEventListener("abort", onAbort, { once: true });
+  const timeout = window.setTimeout(() => abort.abort(), 30_000);
   try {
-    response = await fetch(`/api/drawings${path}`, init);
-  } catch (error) {
-    if (init?.signal?.aborted) {
-      throw error;
+    let response: Response;
+    try {
+      response = await fetch(`/api/drawings${path}`, {
+        ...init,
+        signal: abort.signal,
+      });
+    } catch (error) {
+      if (init?.signal?.aborted) {
+        throw error;
+      }
+      throw new Error(
+        abort.signal.aborted
+          ? "The drawing server took too long to respond. Check your connection and try again."
+          : "Cannot reach the drawing server. Check your connection and try again.",
+      );
     }
-    console.error("Drawing server request failed", error);
-    throw new Error(
-      "Cannot reach the drawing server. Check your connection and try again.",
-    );
-  }
-  let data;
-  try {
-    data = await response.json();
-  } catch (error) {
-    if (init?.signal?.aborted) {
-      throw error;
+    let data;
+    try {
+      data = await response.json();
+    } catch (error) {
+      if (init?.signal?.aborted) {
+        throw error;
+      }
+      throw new Error(
+        abort.signal.aborted
+          ? "The drawing server took too long to respond. Check your connection and try again."
+          : "The drawing server returned an invalid response. Check that the server is running and try again.",
+      );
     }
-    console.error("Invalid drawing server response", error);
-    throw new Error(
-      "The drawing server returned an invalid response. Check that the server is running and try again.",
-    );
+    if (!response.ok) {
+      throw new Error(
+        data?.error ||
+          `Drawing server request failed (${response.status}). Try again.`,
+      );
+    }
+    return data as T;
+  } finally {
+    window.clearTimeout(timeout);
+    init?.signal?.removeEventListener("abort", onAbort);
   }
-  if (!response.ok) {
-    throw new Error(
-      data.error ||
-        `Drawing server request failed (${response.status}). Try again.`,
-    );
-  }
-  return data as T;
 };
 
 export const listDrawings = () => request<DrawingMetadata[]>("");
@@ -47,14 +65,30 @@ export const listDrawings = () => request<DrawingMetadata[]>("");
 export const getDrawing = (id: string, signal?: AbortSignal) =>
   request<ServerDrawing>(`/${encodeURIComponent(id)}`, { signal });
 
-export const saveDrawing = (id: string | null, name: string, scene: object) =>
-  request<DrawingMetadata>(id ? `/${encodeURIComponent(id)}` : "", {
-    method: id ? "PUT" : "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, scene }),
-  });
+export const saveDrawing = (
+  drawing: DrawingMetadata | null,
+  name: string,
+  scene: object,
+  requestId?: string,
+) =>
+  request<DrawingMetadata>(
+    drawing ? `/${encodeURIComponent(drawing.id)}` : "",
+    {
+      method: drawing ? "PUT" : "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(drawing
+          ? { "If-Match": `"${drawing.revision}"` }
+          : requestId
+          ? { "Idempotency-Key": requestId }
+          : {}),
+      },
+      body: JSON.stringify({ name, scene }),
+    },
+  );
 
-export const deleteDrawing = (id: string) =>
-  request<{ readonly id: string }>(`/${encodeURIComponent(id)}`, {
+export const deleteDrawing = (drawing: DrawingMetadata) =>
+  request<{ readonly id: string }>(`/${encodeURIComponent(drawing.id)}`, {
     method: "DELETE",
+    headers: { "If-Match": `"${drawing.revision}"` },
   });

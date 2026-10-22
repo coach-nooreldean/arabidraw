@@ -46,6 +46,23 @@ export const importFromLocalStorage = () => {
     console.error(error);
   }
 
+  try {
+    const draft = JSON.parse(
+      sessionStorage.getItem(STORAGE_KEYS.SESSION_STORAGE_DRAFT) ?? "null",
+    );
+    if (
+      draft &&
+      Array.isArray(draft.elements) &&
+      draft.appState &&
+      typeof draft.appState === "object"
+    ) {
+      savedElements = JSON.stringify(draft.elements);
+      savedState = JSON.stringify(draft.appState);
+    }
+  } catch (error) {
+    console.error("Reading this tab's draft failed", error);
+  }
+
   let elements: ExcalidrawElement[] = [];
   if (savedElements) {
     try {

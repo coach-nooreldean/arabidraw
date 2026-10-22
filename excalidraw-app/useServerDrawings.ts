@@ -43,7 +43,34 @@ export interface ServerDrawingsController {
 
 // Ignore editor chrome, image-cache status and element revision bookkeeping.
 // Cache the expensive content snapshot so panning/selection never re-encodes images.
-const createContentTracker = () => {
+// Stable property order matters when comparing restored and live editor state.
+const stableJSON = (value: unknown): string =>
+  JSON.stringify(value, (_key, item) => {
+    if (item && typeof item === "object" && !Array.isArray(item)) {
+      return Object.fromEntries(
+        Object.keys(item)
+          .sort()
+          .map((key) => [key, item[key]]),
+      );
+    }
+    return item;
+  });
+
+// getRandomValues also works on HTTP LAN deployments where randomUUID is absent.
+const createSaveRequestId = () => {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (byte) =>
+    byte.toString(16).padStart(2, "0"),
+  ).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(
+    12,
+    16,
+  )}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+};
+
+export const createContentTracker = () => {
   let previousElements: { id: string; version: number; deleted: boolean }[] =
     [];
   let previousFiles: { id: string; dataURL: string; mimeType: string }[] = [];
@@ -56,7 +83,7 @@ const createContentTracker = () => {
     files: BinaryFiles,
   ) => {
     const exportedAppState = cleanAppStateForExport(appState);
-    const state = JSON.stringify(exportedAppState);
+    const state = stableJSON(exportedAppState);
     let changed =
       state !== previousAppState || elements.length !== previousElements.length;
     let fileIndex = 0;
@@ -115,7 +142,7 @@ const createContentTracker = () => {
         });
       }
     }
-    content = JSON.stringify({
+    content = stableJSON({
       elements: visibleElements,
       appState: exportedAppState,
       files: previousFiles,
@@ -124,32 +151,13 @@ const createContentTracker = () => {
   };
 };
 
-const ACTIVE_DRAWING_KEY = "arabidraw-active-drawing";
-
-const readActiveDrawing = (): DrawingMetadata | null => {
-  try {
-    const value = JSON.parse(
-      localStorage.getItem(ACTIVE_DRAWING_KEY) ?? "null",
-    );
-    return value &&
-      typeof value.id === "string" &&
-      typeof value.name === "string" &&
-      typeof value.updatedAt === "string"
-      ? value
-      : null;
-  } catch (error) {
-    console.error("Reading active server drawing failed", error);
-    return null;
-  }
-};
-
 export const useServerDrawings = (
   api: ExcalidrawImperativeAPI | null,
   isCollaborating: boolean,
 ): ServerDrawingsController => {
   const [isOpen, setIsOpen] = useState(false);
   const [activeDrawing, setActiveDrawing] = useState<DrawingMetadata | null>(
-    readActiveDrawing,
+    null,
   );
   const [isDirty, setIsDirty] = useState(true);
   const [drawings, setDrawings] = useState<readonly DrawingMetadata[]>([]);
@@ -160,30 +168,18 @@ export const useServerDrawings = (
   const [listError, setListError] = useState("");
   const [name, setName] = useState("");
   const savedContent = useRef<string | null>(null);
+  const savedRevision = useRef<string | null>(null);
   const [trackContent] = useState(createContentTracker);
   const busy = useRef(false);
+  const pendingCreate = useRef<{
+    id: string;
+    content: string;
+    name: string;
+    scene: object;
+  } | null>(null);
   const collaboration = useRef(isCollaborating);
   const listRequest = useRef(0);
   collaboration.current = isCollaborating;
-
-  useEffect(() => {
-    try {
-      if (activeDrawing) {
-        const { id, name, updatedAt } = activeDrawing;
-        localStorage.setItem(
-          ACTIVE_DRAWING_KEY,
-          JSON.stringify({ id, name, updatedAt }),
-        );
-      } else {
-        localStorage.removeItem(ACTIVE_DRAWING_KEY);
-      }
-    } catch (error) {
-      console.error("Persisting active server drawing failed", error);
-      setError(
-        "The browser could not remember the active drawing. Load it again after refreshing before saving.",
-      );
-    }
-  }, [activeDrawing]);
 
   const currentContent = useCallback(() => {
     if (!api) {
@@ -200,15 +196,68 @@ export const useServerDrawings = (
     if (!api) {
       return;
     }
-    // A browser-restored canvas has not yet been saved to the server.
-    const update = () =>
+    const update = () => {
+      if (api.getAppState().isLoading) {
+        return;
+      }
+      const drawing = api.getAppState().serverDrawing;
+      setActiveDrawing(drawing);
       setIsDirty(
-        savedContent.current === null ||
+        !drawing ||
+          savedRevision.current !== `${drawing.id}:${drawing.revision}` ||
+          savedContent.current === null ||
           currentContent() !== savedContent.current,
       );
+    };
     update();
     return api.onChange(update);
   }, [api, currentContent]);
+
+  // Re-establish the saved baseline after a reload without replacing local edits.
+  useEffect(() => {
+    if (!api || !activeDrawing) {
+      savedContent.current = null;
+      savedRevision.current = null;
+      return;
+    }
+    const key = `${activeDrawing.id}:${activeDrawing.revision}`;
+    if (savedRevision.current === key) {
+      return;
+    }
+    savedContent.current = null;
+    savedRevision.current = null;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const drawing = await getDrawing(activeDrawing.id);
+        if (drawing.revision !== activeDrawing.revision) {
+          return;
+        }
+        const restored = await loadFromBlob(
+          new Blob([JSON.stringify(drawing.scene)], {
+            type: "application/json",
+          }),
+          null,
+          null,
+        );
+        if (!cancelled) {
+          savedContent.current = createContentTracker()(
+            restored.elements,
+            restored.appState,
+            restored.files,
+          );
+          savedRevision.current = key;
+          setIsDirty(currentContent() !== savedContent.current);
+        }
+      } catch (error) {
+        // The canvas stays editable offline; saving reports actionable errors.
+        console.error("Checking saved drawing failed", error);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeDrawing, api, currentContent]);
 
   useEffect(() => {
     if (!activeDrawing) {
@@ -260,9 +309,13 @@ export const useServerDrawings = (
     if (!api || busy.current || collaboration.current) {
       return;
     }
-    const drawingName = (saveAs ? name : activeDrawing?.name ?? name).trim();
-    if (!drawingName) {
-      setError("Enter a name for your drawing.");
+    if (!isOpen && (!activeDrawing || saveAs)) {
+      open();
+      return;
+    }
+    const drawingName = (isOpen ? name : activeDrawing?.name ?? "").trim();
+    if (!drawingName || drawingName.length > 200) {
+      setError("Enter a drawing name between 1 and 200 characters.");
       return;
     }
     busy.current = true;
@@ -282,6 +335,8 @@ export const useServerDrawings = (
         }
       }
       const snapshot = currentContent();
+      const identity = api.getAppState().serverDrawing;
+      const canvasName = api.getAppState().name;
       const scene = JSON.parse(
         serializeAsJSON(
           api.getSceneElements(),
@@ -291,24 +346,48 @@ export const useServerDrawings = (
         ),
       );
       scene.appState.name = drawingName;
+      const target = saveAs ? null : activeDrawing;
+      if (
+        !target &&
+        (pendingCreate.current?.content !== snapshot ||
+          pendingCreate.current?.name !== drawingName)
+      ) {
+        pendingCreate.current = {
+          id: createSaveRequestId(),
+          content: snapshot,
+          name: drawingName,
+          scene,
+        };
+      }
       const result = await saveDrawing(
-        saveAs ? null : activeDrawing?.id ?? null,
+        target,
         drawingName,
-        scene,
+        target ? scene : pendingCreate.current!.scene,
+        target ? undefined : pendingCreate.current!.id,
       );
+      pendingCreate.current = null;
       void refresh();
-      if (collaboration.current) {
+      if (
+        collaboration.current ||
+        api.getAppState().serverDrawing !== identity ||
+        api.getAppState().name !== canvasName
+      ) {
         setError(
-          `Saved “${result.name}”, but the active canvas is now in collaboration. Leave collaboration before loading it.`,
+          `Saved “${result.name}”, but the active canvas changed. Open it from the gallery to continue working on that saved copy.`,
         );
         return;
       }
       savedContent.current = snapshot;
+      savedRevision.current = `${result.id}:${result.revision}`;
       setActiveDrawing(result);
       setName(result.name);
       setIsDirty(currentContent() !== snapshot);
       api.updateScene({
-        appState: { name: result.name },
+        appState: {
+          name: result.name,
+          serverDrawing: result,
+          toast: { message: `Saved “${result.name}”` },
+        },
         captureUpdate: CaptureUpdateAction.NEVER,
       });
     } catch (error) {
@@ -379,13 +458,20 @@ export const useServerDrawings = (
       const appState = {
         ...restored.appState,
         name: result.name,
+        serverDrawing: {
+          id: result.id,
+          name: result.name,
+          updatedAt: result.updatedAt,
+          revision: result.revision,
+        },
         selectedElementIds: {},
         selectedGroupIds: {},
         editingGroupId: null,
         openDialog: null,
         fileHandle: null,
       };
-      savedContent.current = trackContent(
+      savedRevision.current = `${result.id}:${result.revision}`;
+      savedContent.current = createContentTracker()(
         restored.elements,
         appState,
         restored.files,
@@ -397,7 +483,7 @@ export const useServerDrawings = (
       });
       api.addFiles(Object.values(restored.files));
       api.history.clear();
-      setActiveDrawing(result);
+      setActiveDrawing(appState.serverDrawing);
       setName(result.name);
       setIsDirty(false);
       setIsOpen(false);
@@ -432,12 +518,17 @@ export const useServerDrawings = (
     setOperation("delete");
     setError("");
     try {
-      await deleteDrawing(drawing.id);
+      await deleteDrawing(drawing);
       setDrawings((current) =>
         current.filter((item) => item.id !== drawing.id),
       );
       if (activeDrawing?.id === drawing.id) {
         savedContent.current = null;
+        savedRevision.current = null;
+        api.updateScene({
+          appState: { serverDrawing: null },
+          captureUpdate: CaptureUpdateAction.NEVER,
+        });
         setActiveDrawing(null);
         setIsDirty(true);
       }
@@ -456,10 +547,34 @@ export const useServerDrawings = (
     }
   };
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (
+        (event.ctrlKey || event.metaKey) &&
+        !event.altKey &&
+        event.key.toLowerCase() === "s"
+      ) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        if (event.shiftKey) {
+          open();
+        } else {
+          void save(false);
+        }
+      }
+    };
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
+  });
+
   return {
     isOpen,
     open,
-    close: () => setIsOpen(false),
+    close: () => {
+      if (!busy.current) {
+        setIsOpen(false);
+      }
+    },
     activeDrawing,
     isDirty,
     drawings,

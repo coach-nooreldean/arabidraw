@@ -2785,52 +2785,6 @@
   resolved "https://registry.npmjs.org/@rushstack/eslint-patch/-/eslint-patch-1.10.5.tgz"
   integrity sha512-kkKUDVlII2DQiKy7UstOR1ErJP8kUKAQ4oa+SQtM0K+lPdmmjj0YnnxBgtTVYH7mUKtbsxeFC9y0AmK7Yb78/A==
 
-"@sentry-internal/browser-utils@9.0.1":
-  version "9.0.1"
-  resolved "https://registry.npmjs.org/@sentry-internal/browser-utils/-/browser-utils-9.0.1.tgz"
-  integrity sha512-/2karfYpQFtnkFrWxQgi/DuOf83OGhIdJcEmRDYDZKvj3mGHQ6n7fzIFD8fc0hPupBA/xi2kHVu7DX7scx5Fbw==
-  dependencies:
-    "@sentry/core" "9.0.1"
-
-"@sentry-internal/feedback@9.0.1":
-  version "9.0.1"
-  resolved "https://registry.npmjs.org/@sentry-internal/feedback/-/feedback-9.0.1.tgz"
-  integrity sha512-U43WMmhTXx9+wtXaJRnfoFfHz2Zv9fIEWDinYZQ03yGhjnAj3033Ca+mH+wMM0SQjF0KhGLG8Os4B/OGoQzB2g==
-  dependencies:
-    "@sentry/core" "9.0.1"
-
-"@sentry-internal/replay-canvas@9.0.1":
-  version "9.0.1"
-  resolved "https://registry.npmjs.org/@sentry-internal/replay-canvas/-/replay-canvas-9.0.1.tgz"
-  integrity sha512-7PBCkqNZQjbAunQmfSRkMKqviQ+jOqB/dy0nvL/T7EaahoD7VzVCGAbL29cLkPmpP3a9dzYk7ALrUqKLApwhRg==
-  dependencies:
-    "@sentry-internal/replay" "9.0.1"
-    "@sentry/core" "9.0.1"
-
-"@sentry-internal/replay@9.0.1":
-  version "9.0.1"
-  resolved "https://registry.npmjs.org/@sentry-internal/replay/-/replay-9.0.1.tgz"
-  integrity sha512-QzHClQWOgTEjOiBaCoQMytTSyZUKo/F2SYnzeWF30qNHtOKZSXEUugOeF3Ph0wc47NdH/4qPjYZgbNEYARf2qw==
-  dependencies:
-    "@sentry-internal/browser-utils" "9.0.1"
-    "@sentry/core" "9.0.1"
-
-"@sentry/browser@9.0.1":
-  version "9.0.1"
-  resolved "https://registry.npmjs.org/@sentry/browser/-/browser-9.0.1.tgz"
-  integrity sha512-alI1r1NyIARjzEm5493QuOPhiT2W1gelGDV30B1oL5cKo1arjqRLHp8Ny5odlTnyDTFC4EIx5Z69J+iyhW0CvQ==
-  dependencies:
-    "@sentry-internal/browser-utils" "9.0.1"
-    "@sentry-internal/feedback" "9.0.1"
-    "@sentry-internal/replay" "9.0.1"
-    "@sentry-internal/replay-canvas" "9.0.1"
-    "@sentry/core" "9.0.1"
-
-"@sentry/core@9.0.1":
-  version "9.0.1"
-  resolved "https://registry.npmjs.org/@sentry/core/-/core-9.0.1.tgz"
-  integrity sha512-RQ3B3NfF+BdmQz1c+vj4OBO+kxvxSsYMcmCDxSEZ7YrS/6Er1kMy0fwfxmdZJMdM1LlzXmO0XWF2g1IO9CzKyQ==
-
 "@sinclair/typebox@^0.27.8":
   version "0.27.8"
   resolved "https://registry.npmjs.org/@sinclair/typebox/-/typebox-0.27.8.tgz"
@@ -4257,11 +4211,6 @@ call-bound@^1.0.2, call-bound@^1.0.3:
   dependencies:
     call-bind-apply-helpers "^1.0.1"
     get-intrinsic "^1.2.6"
-
-callsites@4.2.0:
-  version "4.2.0"
-  resolved "https://registry.npmjs.org/callsites/-/callsites-4.2.0.tgz"
-  integrity sha512-kfzR4zzQtAE9PC7CzZsjl3aBNbXWuXiSeOCdLcPpBfGW8YuCqQHcRPFDbr/BPVmd3EEPVpuFzLyuT/cUhPr4OQ==
 
 callsites@^3.0.0:
   version "3.1.0"
@@ -7841,6 +7790,18 @@ pkg-types@^1.3.1:
     mlly "^1.7.4"
     pathe "^2.0.1"
 
+playwright-core@1.64.1:
+  version "1.64.1"
+  resolved "https://registry.yarnpkg.com/playwright-core/-/playwright-core-1.64.1.tgz#ca9ec82d7da6ced1b2326ec59ef097aaa9a29f94"
+  integrity sha512-BC4s8y6SEVA6Q1rSxZTto8hI1KUI3xXlHGZgvGqP4IqPdI/a6FX9H29IDNz7vKo9l21b6LfYosScPL6M3xxyDQ==
+
+playwright@1.64.1:
+  version "1.64.1"
+  resolved "https://registry.yarnpkg.com/playwright/-/playwright-1.64.1.tgz#c174f48e17f5f3fba71726a9bcdeb8534d5c665d"
+  integrity sha512-HCrVhHr5QQuwYoswEUGTb7gGp522yflbv/ST8nF4sFWGuLjQCt17Q/EubpGGSNKYn1tsTCPZxqHhHCfVURu7UA==
+  dependencies:
+    playwright-core "1.64.1"
+
 png-chunk-text@1.0.0:
   version "1.0.0"
   resolved "https://registry.npmjs.org/png-chunk-text/-/png-chunk-text-1.0.0.tgz"
@@ -9557,11 +9518,6 @@ vite-plugin-pwa@0.21.1:
     tinyglobby "^0.2.10"
     workbox-build "^7.3.0"
     workbox-window "^7.3.0"
-
-vite-plugin-sitemap@0.7.1:
-  version "0.7.1"
-  resolved "https://registry.npmjs.org/vite-plugin-sitemap/-/vite-plugin-sitemap-0.7.1.tgz"
-  integrity sha512-4NRTkiWytLuAmcikckrLcLl9iYA20+5v6l8XshcOrzxH1WR8H0O3S6sTQYfjMrE8su/LG6Y0cTodvOdcOIxaLw==
 
 vite-plugin-svgr@4.2.0:
   version "4.2.0"

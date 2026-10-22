@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { mkdir, open, readdir, rename, unlink } from "node:fs/promises";
 import { createServer } from "node:http";
 import path from "node:path";
@@ -22,6 +22,7 @@ interface DrawingMetadata {
   id: string;
   name: string;
   updatedAt: string;
+  revision: string;
 }
 
 class HttpError extends Error {
@@ -160,7 +161,8 @@ const readDrawing = async (id: string) => {
   }
   try {
     // Read and stat the same inode, even if a concurrent save replaces its path.
-    const scene: unknown = JSON.parse(await file.readFile("utf8"));
+    const contents = await file.readFile("utf8");
+    const scene: unknown = JSON.parse(contents);
     if (!isScene(scene) || typeof scene.appState.name !== "string") {
       throw new Error(`Invalid drawing document: ${filePath}`);
     }
@@ -169,6 +171,7 @@ const readDrawing = async (id: string) => {
       id,
       name: scene.appState.name,
       updatedAt: stat.mtime.toISOString(),
+      revision: createHash("sha256").update(contents).digest("hex"),
       scene,
     };
   } finally {
@@ -190,8 +193,8 @@ const listDrawings = async (): Promise<DrawingMetadata[]> => {
       continue;
     }
     try {
-      const { name, updatedAt } = await readDrawing(id);
-      drawings.push({ id, name, updatedAt });
+      const { name, updatedAt, revision } = await readDrawing(id);
+      drawings.push({ id, name, updatedAt, revision });
     } catch (error) {
       console.error(`Unable to list drawing ${drawingPath(id)}:`, error);
     }
@@ -207,18 +210,30 @@ const saveDrawing = (
   id: string,
   name: string,
   scene: Scene,
-  update: boolean,
+  expectedRevision?: string,
 ): Promise<DrawingMetadata> =>
   mutateDrawing(id, async () => {
-    if (update) {
+    if (expectedRevision !== undefined) {
+      await checkRevision(id, expectedRevision);
+    } else {
+      // A retry after a lost response must not create a second drawing.
       try {
-        const existing = await open(drawingPath(id), "r");
-        await existing.close();
-      } catch (error) {
-        if (isMissing(error)) {
-          throw new HttpError(404, "Drawing not found");
+        const existing = await readDrawing(id);
+        if (
+          existing.revision !==
+          createHash("sha256").update(JSON.stringify(scene)).digest("hex")
+        ) {
+          throw new HttpError(
+            409,
+            "This save request was already used for a different drawing.",
+          );
         }
-        throw error;
+        const { scene: _scene, ...metadata } = existing;
+        return metadata;
+      } catch (error) {
+        if (!(error instanceof HttpError) || error.status !== 404) {
+          throw error;
+        }
       }
     }
     const temporaryPath = path.join(DRAWINGS_DIR, `.${id}.${randomUUID()}.tmp`);
@@ -233,7 +248,14 @@ const saveDrawing = (
         await file.close();
       }
       await rename(temporaryPath, drawingPath(id));
-      return { id, name, updatedAt };
+      return {
+        id,
+        name,
+        updatedAt,
+        revision: createHash("sha256")
+          .update(JSON.stringify(scene))
+          .digest("hex"),
+      };
     } finally {
       try {
         await unlink(temporaryPath);
@@ -248,9 +270,31 @@ const saveDrawing = (
     }
   });
 
-const deleteDrawing = (id: string): Promise<void> =>
+const checkRevision = async (id: string, expectedRevision: string) => {
+  const current = await readDrawing(id);
+  if (`"${current.revision}"` !== expectedRevision) {
+    throw new HttpError(
+      409,
+      "This drawing changed on the server. Load the latest version or use Save as to keep your changes in a separate copy.",
+    );
+  }
+};
+
+const requireRevision = (request: IncomingMessage) => {
+  const revision = request.headers["if-match"];
+  if (typeof revision !== "string" || !/^"[0-9a-f]{64}"$/.test(revision)) {
+    throw new HttpError(
+      428,
+      "Load this drawing before updating or deleting it.",
+    );
+  }
+  return revision;
+};
+
+const deleteDrawing = (id: string, revision: string): Promise<void> =>
   mutateDrawing(id, async () => {
     try {
+      await checkRevision(id, revision);
       await unlink(drawingPath(id));
     } catch (error) {
       if (isMissing(error)) {
@@ -273,7 +317,20 @@ const handleRequest = async (
       }
       if (request.method === "POST") {
         const { name, scene } = parseDrawing(await readBody(request));
-        const drawing = await saveDrawing(randomUUID(), name, scene, false);
+        const requestId = request.headers["idempotency-key"];
+        if (
+          requestId !== undefined &&
+          (typeof requestId !== "string" || !UUID_PATTERN.test(requestId))
+        ) {
+          throw new HttpError(400, "Invalid save request ID");
+        }
+        const drawing = await saveDrawing(
+          typeof requestId === "string"
+            ? requestId.toLowerCase()
+            : randomUUID(),
+          name,
+          scene,
+        );
         response.setHeader("Location", `/api/drawings/${drawing.id}`);
         sendJson(response, 201, drawing);
         return;
@@ -296,11 +353,15 @@ const handleRequest = async (
     }
     if (request.method === "PUT") {
       const { name, scene } = parseDrawing(await readBody(request));
-      sendJson(response, 200, await saveDrawing(id, name, scene, true));
+      sendJson(
+        response,
+        200,
+        await saveDrawing(id, name, scene, requireRevision(request)),
+      );
       return;
     }
     if (request.method === "DELETE") {
-      await deleteDrawing(id);
+      await deleteDrawing(id, requireRevision(request));
       sendJson(response, 200, { id });
       return;
     }

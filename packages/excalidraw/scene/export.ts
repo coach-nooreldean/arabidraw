@@ -456,7 +456,9 @@ export const exportToSvg = async (
     rect.setAttribute(
       "fill",
       exportWithDarkMode
-        ? applyDarkModeFilter(viewBackgroundColor)
+        ? viewBackgroundColor.toLowerCase() === "#ffffff"
+          ? "#0a0a0a"
+          : applyDarkModeFilter(viewBackgroundColor)
         : viewBackgroundColor,
     );
     svgRoot.appendChild(rect);

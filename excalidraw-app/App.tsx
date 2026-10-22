@@ -8,6 +8,7 @@ import {
 } from "@excalidraw/excalidraw";
 import { trackEvent } from "@excalidraw/excalidraw/analytics";
 import { getDefaultAppState } from "@excalidraw/excalidraw/appState";
+import { Button } from "@excalidraw/excalidraw/components/Button";
 import {
   CommandPalette,
   DEFAULT_CATEGORIES,
@@ -100,6 +101,8 @@ import Collab, {
 import { AppFooter } from "./components/AppFooter";
 import { AppMainMenu } from "./components/AppMainMenu";
 import { AppWelcomeScreen } from "./components/AppWelcomeScreen";
+import { ServerDrawingsDialog } from "./components/ServerDrawingsDialog";
+import { useServerDrawings } from "./useServerDrawings";
 import {
   ExportToExcalidrawPlus,
   exportToExcalidrawPlus,
@@ -142,7 +145,6 @@ import { ExcalidrawPlusIframeExport } from "./ExcalidrawPlusIframeExport";
 
 import "./index.scss";
 
-import { ExcalidrawPlusPromoBanner } from "./components/ExcalidrawPlusPromoBanner";
 import { AppSidebar } from "./components/AppSidebar";
 
 import type { CollabAPI } from "./collab/Collab";
@@ -408,6 +410,7 @@ const ExcalidrawWrapper = () => {
     return isCollaborationLink(window.location.href);
   });
   const collabError = useAtomValue(collabErrorIndicatorAtom);
+  const serverDrawings = useServerDrawings(excalidrawAPI, isCollaborating);
 
   useHandleLibrary({
     excalidrawAPI,
@@ -883,26 +886,30 @@ const ExcalidrawWrapper = () => {
         autoFocus={true}
         theme={editorTheme}
         renderTopRightUI={(isMobile) => {
-          if (isMobile || !collabAPI || isCollabDisabled) {
-            return null;
-          }
-
+          const showCollaboration = !isMobile && collabAPI && !isCollabDisabled;
           return (
             <div className="excalidraw-ui-top-right">
-              {excalidrawAPI?.getEditorInterface().formFactor === "desktop" && (
-                <ExcalidrawPlusPromoBanner
-                  isSignedIn={isExcalidrawPlusSignedUser}
-                />
+              <Button
+                onSelect={serverDrawings.open}
+                disabled={serverDrawings.disabled}
+                title="Save and browse drawings"
+              >
+                Save
+              </Button>
+              {showCollaboration && (
+                <>
+                  {collabError.message && (
+                    <CollabError collabError={collabError} />
+                  )}
+                  <LiveCollaborationTrigger
+                    isCollaborating={isCollaborating}
+                    onSelect={() =>
+                      setShareDialogState({ isOpen: true, type: "share" })
+                    }
+                    editorInterface={editorInterface}
+                  />
+                </>
               )}
-
-              {collabError.message && <CollabError collabError={collabError} />}
-              <LiveCollaborationTrigger
-                isCollaborating={isCollaborating}
-                onSelect={() =>
-                  setShareDialogState({ isOpen: true, type: "share" })
-                }
-                editorInterface={editorInterface}
-              />
             </div>
           );
         }}
@@ -920,6 +927,7 @@ const ExcalidrawWrapper = () => {
           theme={appTheme}
           setTheme={(theme) => setAppTheme(theme)}
           refresh={() => forceRefresh((prev) => !prev)}
+          onServerDrawingsOpen={serverDrawings.open}
         />
         <AppWelcomeScreen
           onCollabDialogOpen={onCollabDialogOpen}
@@ -946,6 +954,7 @@ const ExcalidrawWrapper = () => {
           )}
         </OverwriteConfirmDialog>
         <AppFooter onChange={() => excalidrawAPI?.refresh()} />
+        <ServerDrawingsDialog drawings={serverDrawings} />
         {excalidrawAPI && <AIComponents excalidrawAPI={excalidrawAPI} />}
 
         <TTDDialogTrigger />

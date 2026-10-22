@@ -1,0 +1,140 @@
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+
+  p {
+    margin: 0;
+  }
+
+  button,
+  input {
+    min-height: 2.75rem;
+    border: 1px solid var(--color-gray-40);
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    color: var(--text-primary-color);
+    background: var(--island-bg-color);
+    font: inherit;
+  }
+
+  button {
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  button:disabled,
+  input:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  button:focus-visible,
+  input:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}
+
+.status,
+.saveAs,
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  overflow-wrap: anywhere;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+
+  input {
+    flex: 1;
+    min-width: 0;
+  }
+
+  h3 {
+    flex: 1;
+    margin: 0;
+  }
+}
+
+.browser {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  border-top: 1px solid var(--color-gray-40);
+  padding-top: 1rem;
+}
+
+.list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 12rem), 1fr));
+  gap: 1rem;
+  list-style: none;
+  margin: 0;
+  padding: 0.25rem;
+  max-height: min(30rem, 55vh);
+  overflow-y: auto;
+
+  li {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-width: 0;
+    padding: 0.75rem;
+    border: 1px solid var(--color-gray-40);
+    border-radius: 0.75rem;
+  }
+
+  li[data-active="true"] {
+    border-color: var(--color-primary);
+  }
+}
+
+.details {
+  min-width: 0;
+
+  time {
+    font-size: 0.85rem;
+  }
+}
+
+.cardTitle {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.activeBadge {
+  border: 1px solid var(--color-primary);
+  border-radius: 1rem;
+  padding: 0.125rem 0.5rem;
+  color: var(--color-primary);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.cardActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: auto;
+
+  button {
+    flex: 1;
+  }
+
+  .delete {
+    color: var(--color-danger);
+  }
+}
+
+.error {
+  color: var(--color-danger);
+  overflow-wrap: anywhere;
+}

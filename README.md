@@ -80,6 +80,58 @@ The app hosted at [excalidraw.com](https://excalidraw.com) is a minimal showcase
 
 We'll be adding these features as drop-in plugins for the npm package in the future.
 
+## Self-hosted saved drawings
+
+Text blocks use 30% more line spacing than upstream. Existing text using the
+upstream or earlier 50% default is adjusted when loaded; custom line heights
+are preserved. Save the drawing to persist the new spacing.
+
+Start or update this fork with Docker Compose:
+
+```sh
+docker compose up -d --build
+```
+
+Open `http://localhost:3000`, then choose **Save** in the top toolbar (replacing
+Excalidraw+), or **Server drawings — Save / Browse** from the main menu.
+Enter a drawing name and choose **Save as** to create a saved drawing.
+Inside the dialog, **Save** updates the active drawing; **Save as** creates a
+separate copy. The gallery marks the current drawing **Active**. **Load** opens
+a drawing and asks before discarding unsaved changes. Embedded images and
+canvas backgrounds are included.
+
+Each card has a **Delete** action with confirmation. Deletion is permanent;
+deleting the active saved copy keeps its canvas open as an unsaved drawing.
+Previews load only for visible cards, with at most two fetch/render jobs at a
+time. The browser caches up to 64 small (240px maximum dimension) previews,
+not full scenes. The first preview still downloads the saved scene, so large
+image-heavy drawings can take longer; drawing/editing does not generate previews.
+
+Drawings are standard `.excalidraw` files stored in `./drawings` on the host,
+mounted at `/data/drawings` in the API container. Back up this folder; it
+survives container restarts, rebuilds, and replacement. Do not delete it when
+updating the app. The API is available through the frontend's `/api` route,
+not a separate published port.
+
+Server saving is explicit, separate from the existing browser autosave.
+The browser remembers the active server drawing across reloads, so **Save**
+updates that same file; **Save as** creates a new copy. For drawings opened
+before this update, load the intended saved copy once to establish its identity.
+After a reload, canvas changes are conservatively considered unsaved until Save.
+Save/load/delete is disabled during live collaboration. Names are limited to 200
+characters and requests to 50 MB, including embedded images. There is no
+authentication: keep this deployment on a trusted private network.
+
+For local development, run `yarn dev:server` and `yarn start` in separate
+terminals. The API defaults to port 3001 and `./drawings`; override `PORT`
+and `DRAWINGS_DIR` if needed. Set `DRAWINGS_API_URL` for the frontend when
+using another API address, for example:
+
+```sh
+PORT=3101 yarn dev:server
+DRAWINGS_API_URL=http://127.0.0.1:3101 yarn start
+```
+
 ## Quick start
 
 **Note:** following instructions are for installing the Excalidraw [npm package](https://www.npmjs.com/package/@excalidraw/excalidraw) when integrating Excalidraw into your own app. To run the repository locally for development, please refer to our [Development Guide](https://docs.excalidraw.com/docs/introduction/development).

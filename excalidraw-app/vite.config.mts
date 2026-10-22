@@ -15,6 +15,15 @@ export default defineConfig(({ mode }) => {
   return {
     server: {
       port: Number(envVars.VITE_APP_PORT || 3000),
+      proxy: {
+        "/api": {
+          target:
+            process.env.DRAWINGS_API_URL ||
+            envVars.VITE_DRAWINGS_API_URL ||
+            "http://127.0.0.1:3001",
+          changeOrigin: true,
+        },
+      },
       // open the browser
       open: true,
     },
@@ -200,7 +209,7 @@ export default defineConfig(({ mode }) => {
               },
             },
           ],
-          maximumFileSizeToCacheInBytes: 2.3 * 1024 ** 2, // 2.3MB
+          maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB
         },
         manifest: {
           short_name: "Excalidraw",

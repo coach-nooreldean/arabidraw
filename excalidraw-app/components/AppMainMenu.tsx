@@ -22,9 +22,14 @@ export const AppMainMenu: React.FC<{
   theme: Theme | "system";
   setTheme: (theme: Theme | "system") => void;
   refresh: () => void;
+  onServerDrawingsOpen: () => void;
 }> = React.memo((props) => {
   return (
     <MainMenu>
+      <MainMenu.Item onSelect={props.onServerDrawingsOpen}>
+        Server drawings — Save / Browse
+      </MainMenu.Item>
+      <MainMenu.Separator />
       <MainMenu.DefaultItems.LoadScene />
       <MainMenu.DefaultItems.SaveToActiveFile />
       <MainMenu.DefaultItems.Export />
